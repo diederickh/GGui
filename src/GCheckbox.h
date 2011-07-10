@@ -30,5 +30,5 @@ private:
 };
 
 inline float GCheckbox::getHeight() {
-	return 25;
+	return 30;
 }
