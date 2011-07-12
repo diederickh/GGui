@@ -147,6 +147,7 @@ void GGui::updateVertices() {
 
 void GGui::draw() {
 	glPushMatrix();
+//	glColor4f(1.0, 1.0, 1.0, 0.8); // could be usefull when stuff drawn underneath
 	glTranslatef(x,y,0);
 	// texture.
 	glEnable(GL_TEXTURE_2D);

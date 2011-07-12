@@ -80,10 +80,10 @@ void GSlider::setup() {
 	addVertex(x+1,y+1+bar_height);
 	
 	// fill bar 
-	bar_a = addVertex(x+arc_width, y+1);		
-	bar_b = addVertex(x+arc_width+bar_width,y+1);
-	bar_c = addVertex(x+arc_width+bar_width,y+1+bar_height);
-	bar_d = addVertex(x+arc_width,y+1+bar_height);
+	bar_a = addVertex(x+arc_width+1, y+1);		
+	bar_b = addVertex(x+arc_width+1+bar_width,y+1);
+	bar_c = addVertex(x+arc_width+1+bar_width,y+1+bar_height);
+	bar_d = addVertex(x+arc_width+1,y+1+bar_height);
 
 	// right arc	
 	arc_a = addVertex(x+arc_width+bar_width, y+1);		
