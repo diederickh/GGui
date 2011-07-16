@@ -149,7 +149,9 @@ void GGui::draw() {
 	glPushMatrix();
 //	glColor4f(1.0, 1.0, 1.0, 0.8); // could be usefull when stuff drawn underneath
 	glTranslatef(x,y,0);
+	
 	// texture.
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, gui_texture); eglGetError();
 	glEnable(GL_BLEND); eglGetError();
@@ -189,6 +191,11 @@ void GGui::draw() {
 	}
 	glColor3f(1,1,1);
 	glPopMatrix();
+	
+	glDisable(GL_BLEND); eglGetError();
+	glDisableClientState(GL_VERTEX_ARRAY);  eglGetError();
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY); eglGetError();
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 

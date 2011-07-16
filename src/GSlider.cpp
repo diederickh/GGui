@@ -208,7 +208,7 @@ void GSlider::mouseDragged(int x, int y) {
 		float xx = CLAMP(x,mouse_x, mouse_x+mouse_width);
 		percentage = (xx-mouse_x)/mouse_width;
 		updateVertices();
-		*value_ptr = min_value + (num_steps * percentage) * step_size;
+		*value_ptr = min_value + ((num_steps  * step_size) * percentage);
 	}
 }
 
