@@ -1,4 +1,7 @@
 #include "GGui.h"
+
+GGui gui;
+
 //#include "Error.h"
 GGui::GGui()
 	:is_data_changed(false)
@@ -7,8 +10,6 @@ GGui::GGui()
 	,x(0)
 	,y(0)
 {
-	glGenBuffers(1, &vbo_vertices); eglGetError();
-	glGenBuffers(1, &vbo_texcoords); eglGetError();
 }
 
 void GGui::enableEventListeners() {
@@ -20,6 +21,9 @@ void GGui::disableEventListeners() {
 
 //void GGui::setup(ofEventArgs& args) {
 void GGui::setup() {
+	glGenBuffers(1, &vbo_vertices); eglGetError();
+	glGenBuffers(1, &vbo_texcoords); eglGetError();
+
 	checkAssetFiles();
 	x = 0;
 	y = 0;
@@ -28,23 +32,28 @@ void GGui::setup() {
 	metrics.label_width = 165;
 	metrics.row_width = 400;
 	metrics.row_height = 25;
-	label_font.loadFont("gui/gui_font.ttf",9, true, true);
-	value_font.loadFont("gui/gui_font.ttf",9, true, true);
+	label_font.loadFont("gui/gui_font.ttf",8, true, true);
+	value_font.loadFont("gui/gui_font.ttf",8, true, true);
+	
 	createGuiTexture();
 	
+	createOrthoProjectionMatrix();
+	
+	// We're not drawing the background anymore... though leave the code 
+	// here as I might change this in the future.....
 	// Create background quad
 	// -------------------------------------------------------------------------
-	float h = 1440; // fmp height
-	addVertex(x,y);
-	addVertex(x+metrics.row_width,y);
-	addVertex(x+metrics.row_width,y+h);
-	addVertex(x,y+h);
+	float h = 1440; // tmp height
+	//	addVertex(x,y);
+	//	addVertex(x+metrics.row_width,y);
+	//	addVertex(x+metrics.row_width,y+h);
+	//	addVertex(x,y+h);
 
-		
-	addTexCoord(GTCX(48), GTCY(128));
-	addTexCoord(GTCX(448), GTCY(128));
-	addTexCoord(GTCX(448), GTCY(128+h));
-	addTexCoord(GTCX(48), GTCY(128+h));
+			
+	//	addTexCoord(GTCX(48), GTCY(128));
+	//	addTexCoord(GTCX(448), GTCY(128));
+	//	addTexCoord(GTCX(448), GTCY(128+h));
+	//	addTexCoord(GTCX(48), GTCY(128+h));
 	
 	ofAddListener(ofEvents.update, this, &GGui::update);// we need to put this outise enableEventListeners
 	enableEventListeners();
@@ -52,6 +61,34 @@ void GGui::setup() {
 	is_setup = true;
 	show();
 }
+
+void GGui::createOrthoProjectionMatrix() {
+	float w = ofGetWidth();
+	float h = ofGetHeight();
+	float n = 0.1;
+	float f = 10.0;
+	float m[16];
+	
+	ortho_projection[1]  = 0.0f;
+	ortho_projection[2]  = 0.0f;
+	ortho_projection[3]  = 0.0f;
+	ortho_projection[4]  = 0.0f;
+	ortho_projection[6]  = 0.0f;
+	ortho_projection[7]  = 0.0f;
+	ortho_projection[8]  = 0.0f;
+	ortho_projection[9]  = 0.0f;
+	ortho_projection[11] = 0.0f;
+	ortho_projection[15] = 1.0f;
+
+	float fmn = f - n;
+	ortho_projection[0]  = 2.0f / w;
+	ortho_projection[5]  = 2.0f / -h;
+	ortho_projection[10] = -2.0f / fmn;
+	ortho_projection[12] = -(w)/w;
+	ortho_projection[13] = -(h)/-h;
+	ortho_projection[14] = -(f+n)/fmn;
+}
+
 
 GSlider& GGui::addFloat(string title, float& value) {
 	GSlider* slider = new GSlider(this, &value);
@@ -146,56 +183,103 @@ void GGui::updateVertices() {
 }
 
 void GGui::draw() {
-	glPushMatrix();
-//	glColor4f(1.0, 1.0, 1.0, 0.8); // could be usefull when stuff drawn underneath
-	glTranslatef(x,y,0);
-	
-	// texture.
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, gui_texture); eglGetError();
-	glEnable(GL_BLEND); eglGetError();
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); eglGetError()
-	
-	// texcoords
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_texcoords); eglGetError();
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY); eglGetError();
-	glTexCoordPointer(2,GL_FLOAT, 0, 0); eglGetError();
+	// get current model and projection matrix. We draw the gui in orthographic
+	// mode and we will reset the projection and modelview matrices after drawing
+	// the gui.
+	GLdouble curr_proj[16];
+	GLdouble curr_model[16];
+	GLdouble curr_texture[16];
+	glGetDoublev(GL_PROJECTION_MATRIX, curr_proj);
+	glGetDoublev(GL_MODELVIEW_MATRIX, curr_model);
+	glGetDoublev(GL_TEXTURE_MATRIX, curr_texture);
 
-	// vertices.
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices); eglGetError();
-	glEnableClientState(GL_VERTEX_ARRAY);  eglGetError();
-	glVertexPointer(2, GL_FLOAT,0,0);  eglGetError();
+	// we use non-normalized texcoords
+	glMatrixMode(GL_TEXTURE);
+	glLoadIdentity();
 
-	// draw background.	
-	glDrawArrays(GL_QUADS, 0, vertices.size());  eglGetError();
+	glMatrixMode(GL_PROJECTION);
+	glLoadMatrixf(ortho_projection);	
 	
-	glBindBuffer(GL_ARRAY_BUFFER, 0);  eglGetError();
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glTranslatef(0,0,-5);
 	
-	glBindTexture(GL_TEXTURE_2D, 0); eglGetError();
-	
-	float mx = ofGetMouseX();
-	float my = ofGetMouseY();
-	const int num = objects.size();
-	GObject** ptr = (num != 0) ? &objects.front() : NULL;
-	glColor3f(0.9,0.9,0.8);
-	for(int i = 0; i < num; ++i) {
-		// debug draw
-//		glBegin(GL_LINE_LOOP);
-//			glVertex2f(ptr[i]->x, ptr[i]->y);
-//			glVertex2f(ptr[i]->x+ptr[i]->width, ptr[i]->y);
-//			glVertex2f(ptr[i]->x+ptr[i]->width, ptr[i]->y+ptr[i]->height);
-//			glVertex2f(ptr[i]->x, ptr[i]->y+ptr[i]->height);
-//		glEnd();
-		ptr[i]->draw();
+	bool cull_enabled = false;
+	if(glIsEnabled(GL_CULL_FACE)) {
+		glDisable(GL_CULL_FACE);
+		cull_enabled = true;
 	}
-	glColor3f(1,1,1);
-	glPopMatrix();
 	
+	bool depth_enabled = glIsEnabled(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);
+
+		// draw gui.
+		glPushMatrix();
+			glColor4f(1.0, 1.0, 1.0, 1.0); 
+			glTranslatef(x,y,0);
+			
+			// texture.
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glEnable(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, gui_texture); eglGetError();
+			glEnable(GL_BLEND); eglGetError();
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); eglGetError()
+			
+			// texcoords
+			glBindBuffer(GL_ARRAY_BUFFER, vbo_texcoords); eglGetError();
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY); eglGetError();
+			glTexCoordPointer(2,GL_FLOAT, 0, 0); eglGetError();
+
+			// vertices.
+			glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices); eglGetError();
+			glEnableClientState(GL_VERTEX_ARRAY);  eglGetError();
+			glVertexPointer(2, GL_FLOAT,0,0);  eglGetError();
+
+			// draw background.	
+			glDrawArrays(GL_QUADS, 0, vertices.size());  eglGetError();
+			
+			glBindBuffer(GL_ARRAY_BUFFER, 0);  eglGetError();
+			
+			glBindTexture(GL_TEXTURE_2D, 0); eglGetError();
+			
+			float mx = ofGetMouseX();
+			float my = ofGetMouseY();
+			const int num = objects.size();
+			GObject** ptr = (num != 0) ? &objects.front() : NULL;
+		//	glColor3f(0.9,0.9,0.8);
+			for(int i = 0; i < num; ++i) {
+				// debug draw
+				//	glBegin(GL_LINE_LOOP);
+				//		glVertex2f(ptr[i]->x, ptr[i]->y);
+				//		glVertex2f(ptr[i]->x+ptr[i]->width, ptr[i]->y);
+				//		glVertex2f(ptr[i]->x+ptr[i]->width, ptr[i]->y+ptr[i]->height);
+				//		glVertex2f(ptr[i]->x, ptr[i]->y+ptr[i]->height);
+				//	glEnd();
+				ptr[i]->draw();
+			}
+			glColor3f(1,1,1);
+		glPopMatrix();
+
 	glDisable(GL_BLEND); eglGetError();
 	glDisableClientState(GL_VERTEX_ARRAY);  eglGetError();
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY); eglGetError();
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// reset previous projection and modelview matrices
+	glMatrixMode(GL_TEXTURE);
+	glLoadMatrixd(curr_texture);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadMatrixd(curr_proj);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadMatrixd(curr_model);
+	
+	if(cull_enabled) {
+		glEnable(GL_CULL_FACE);
+	}
+	if(depth_enabled) {
+		glEnable(GL_DEPTH_TEST);
+	}
 }
 
 

@@ -88,11 +88,13 @@ private:
 	void addObject(GObject* obj);	
 	void updateVertices();
 	void positionObjects();
+	void createOrthoProjectionMatrix();
 	string name;
 	string clean_name; // lowercased version of name, no spaces 
 	bool is_visible;
 	int end_tween_on; // we tween in and out of view; this is millis when ended
 	int state;
+
 public:
 	GMetrics metrics;
 	bool is_setup;
@@ -108,7 +110,11 @@ public:
 	
 	ofTrueTypeFont label_font;
 	ofTrueTypeFont value_font;
+	
+	float ortho_projection[16];
 };
+
+extern GGui gui;
 
 inline int GGui::addVertex(float x, float y) {
 	vertices.push_back(ofVec2f(x,y));
